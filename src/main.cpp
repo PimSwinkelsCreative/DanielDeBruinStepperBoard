@@ -1,18 +1,26 @@
+#include "stepperControl.h"
 #include <Arduino.h>
 
-// put function declarations here:
-int myFunction(int, int);
+uint16_t stepsPerSecond = 500;
 
-void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+uint32_t lastStepTime = 0;
+uint32_t stepInterval = 1000 / stepsPerSecond;
+
+void setup()
+{
+  setCpuFrequencyMhz(80);
+    setupStepper();
+    setSpeed(1000);
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-}
+void loop()
+{
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+    if (millis() % 4000 < 2000) {
+        setSpeed(500);
+    } else {
+       setSpeed(0);
+    }
+
+    updateStepper();
 }
