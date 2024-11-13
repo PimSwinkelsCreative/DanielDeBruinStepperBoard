@@ -1,25 +1,43 @@
 #include "stepperControl.h"
 #include <Arduino.h>
 
-uint16_t stepsPerSecond = 500;
+uint32_t lastSpeedChange = 0;
+uint32_t speedChangeInterval = 2000;
 
-uint32_t lastStepTime = 0;
-uint32_t stepInterval = 1000 / stepsPerSecond;
+float absoluteSpeed = 120;  //speed in RPM
+float currentSpeed = 0;
+float prevSpeed = -absoluteSpeed;
 
 void setup()
 {
-  setCpuFrequencyMhz(80);
+    delay(3000);
+    Serial.begin(115200);
+    Serial.println("START SETUP");
+    setCpuFrequencyMhz(80);
     setupStepper();
-    setSpeed(1000);
+    setSpeed(120);
+    setAcceleration(5);
+    Serial.println("FINISHED SETUP");
 }
 
 void loop()
 {
-
-    if (millis() % 4000 < 2000) {
-        setSpeed(500);
-    } else {
-       setSpeed(0);
+    if (millis() - lastSpeedChange >= speedChangeInterval) {
+        lastSpeedChange = millis();
+        if (currentSpeed != 0) {
+            prevSpeed = currentSpeed;
+            currentSpeed = 0;
+        } else {
+            if (prevSpeed < 0) {
+                prevSpeed = currentSpeed;
+                currentSpeed = absoluteSpeed;
+            } else {
+                prevSpeed = currentSpeed;
+                currentSpeed = -absoluteSpeed;
+            }
+        }
+        setSpeed(currentSpeed);
+        Serial.println(currentSpeed);
     }
 
     updateStepper();

@@ -5,14 +5,25 @@
 #define FORWARD HIGH
 #define BACKWARD LOW
 
+enum stepperMode{
+    position,
+    constantSpeed,
+    stationary
+};
+
 void setupStepper();
 
-bool setDirection(uint8_t direction);
+bool setMicrosteps(uint16_t _microSteps);
 
 void enableStepper(bool enable);
 
-void makeStep();
+//sets the speed in RPM
+void setSpeed(float _speed);
 
-void setSpeed(float speed);
+void updateSpeed();
+
+//sets the acceleratrion in RPM/minute (or rotations/second/second)
+void setAcceleration(float accel);
+
 
 void updateStepper();
