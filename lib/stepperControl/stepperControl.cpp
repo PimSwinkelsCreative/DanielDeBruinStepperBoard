@@ -1,5 +1,6 @@
 #include "stepperControl.h"
 #include "pinout.h"
+#include "settings.h"
 #include <AccelStepper.h>
 #include <TMCStepper.h>
 
@@ -17,10 +18,11 @@ uint16_t microSteps = 16;
 uint16_t microStepsPerRevolution = microSteps * stepsPerRevolution;
 float acceleration = 10; // accelerations in rotations per second
 
-// speed variables:
+// constant speed variables:
 float speed = 0;
 float targetSpeed = 0;
 uint32_t lastSpeedUpdate = 0;
+const float constantSpeedMaxSpeed = 10;
 
 void setupStepper()
 {
@@ -40,7 +42,7 @@ void setupStepper()
 
     // set rms current and microstep
     driver.rms_current(800);
-    if (!setMicrosteps(0)) {
+    if (!setMicrosteps(4)) {
         Serial.println("ERROR: Could not configure microsteps!");
     }
 
@@ -52,7 +54,6 @@ void setupStepper()
     // initialize the accelStepper library:
     stepper.setMaxSpeed(10 * microStepsPerRevolution); // limit speed to 10Hz
     setAcceleration(1);
-
     enableStepper(true);
 }
 
@@ -69,8 +70,13 @@ bool setMicrosteps(uint16_t _microSteps)
         microStepsPerRevolution = stepsPerRevolution;
     }
     driver.microsteps(microSteps);
-    Serial.println("Microsteps: " + String(microSteps));
-    Serial.println("Steps per revolution: " + String(microStepsPerRevolution));
+
+    // update all other parameters that are affected by the microstep value:
+    setAcceleration(acceleration);
+    if (mode == constantSpeed) {
+        setSpeed(targetSpeed);
+        updateSpeed();
+    }
     return true;
 }
 
@@ -88,6 +94,7 @@ void setSpeed(float _speed)
     mode = constantSpeed;
     targetSpeed = _speed;
     lastSpeedUpdate = micros(); // reset the speed update timer
+    stepper.setMaxSpeed(constantSpeedMaxSpeed * microStepsPerRevolution);
 }
 
 void setAcceleration(float accel)
@@ -136,6 +143,6 @@ void updateSpeed()
             newSpeed = constrain(speed + speedToAdd, speed, targetSpeed);
         }
         speed = newSpeed;
-        stepper.setSpeed(speed * microStepsPerRevolution / 60.0);
     }
+    stepper.setSpeed(speed * microStepsPerRevolution / 60.0);
 }
