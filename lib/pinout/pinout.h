@@ -8,7 +8,7 @@
 #define STEPPER_TYPE 6
 #define STEPPER_TX 7
 #define STEPPER_RX 8
-#define DITRECTION_N 9
+#define DIRECTION_N 9
 #define SW1_N 10
 #define SW2_N 11
 #define SPEED_N 12

@@ -11,7 +11,7 @@ TMC2209Stepper driver(&stepperSerial, 0.11f, 0);
 AccelStepper stepper(AccelStepper::DRIVER, STEPPER_STEP, STEPPER_DIR);
 
 // parameters:
-stepperMode mode = position;
+stepperMode mode = stationary;
 uint16_t stepsPerRevolution = 200;
 uint16_t microSteps = 16;
 uint16_t microStepsPerRevolution = microSteps * stepsPerRevolution;
@@ -95,6 +95,12 @@ void setSpeed(float _speed)
     lastSpeedUpdate = micros(); // reset the speed update timer
 }
 
+void startmotorRotation(float angle)
+{
+    mode = position;
+    stepper.move(angle * float(microStepsPerRevolution));
+}
+
 void setAcceleration(float accel)
 {
     if (accel < 0)
@@ -143,7 +149,7 @@ void updateSpeed()
             newSpeed = constrain(speed + speedToAdd, speed, targetSpeed);
         }
         speed = newSpeed;
-        stepper.setSpeed(speed * microStepsPerRevolution / 60.0);
+        stepper.setSpeed(speed * stepsPerRevolution / 60.0);
     }
 }
 
@@ -152,7 +158,40 @@ bool setDriverCurrent(uint16_t milliAmps)
     if (milliAmps > 2000) {
         return false;
     }
-    driverCurrent = milliAmps;
-    driver.rms_current(driverCurrent);
+
+    if (driverCurrent != milliAmps) {
+        driverCurrent = milliAmps;
+        driver.rms_current(driverCurrent);
+    }
+
     return true;
+}
+
+void setZeroPosition()
+{
+    stepper.setCurrentPosition(0);
+}
+
+void stopStepper()
+{
+    stepper.stop();
+    stepper.runToNewPosition(0);
+}
+
+float getCurrentPosition()
+{
+    return float(stepper.currentPosition()) / float(stepsPerRevolution);
+}
+
+bool movementCompleted()
+{
+    if (stepper.distanceToGo() == 0) {
+        return true;
+    }
+    return false;
+}
+
+void setPostionMaxSpeed(float maxSpeed)
+{
+    stepper.setMaxSpeed(maxSpeed*stepsPerRevolution);
 }
