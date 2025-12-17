@@ -16,13 +16,14 @@ uint16_t stepsPerRevolution = 200;
 uint16_t microSteps = 16;
 uint16_t microStepsPerRevolution = microSteps * stepsPerRevolution;
 float acceleration = 10; // accelerations in rotations per second
+uint16_t driverCurrent = 800;
 
 // speed variables:
 float speed = 0;
 float targetSpeed = 0;
 uint32_t lastSpeedUpdate = 0;
 
-void setupStepper()
+void setupStepper(uint8_t uSteps, uint coilCurrent)
 {
     // start the serial communication:
     stepperSerial.begin(9600, SERIAL_8N1, STEPPER_RX, STEPPER_TX);
@@ -39,14 +40,18 @@ void setupStepper()
     driver.begin();
 
     // set rms current and microstep
-    driver.rms_current(800);
-    if (!setMicrosteps(0)) {
-        Serial.println("ERROR: Could not configure microsteps!");
+    if (!setDriverCurrent(coilCurrent)) {
+        Serial.println("ERROR: Could not configure coil current! Using default value of " + String(driverCurrent));
+    }
+
+    if (!setMicrosteps(uSteps)) {
+        Serial.println("ERROR: Could not configure microsteps! Using default value of " + String(microSteps));
     }
 
     // enable stealthchop
     driver.pwm_autoscale(true); // Needed for stealthChop
     driver.en_spreadCycle(false); // false = StealthChop / true = SpreadCycle
+    // driver.COOLCONF(0b110010000101000); //enable coolstep with "medium" settings
     driver.shaft(false);
 
     // initialize the accelStepper library:
@@ -92,6 +97,8 @@ void setSpeed(float _speed)
 
 void setAcceleration(float accel)
 {
+    if (accel < 0)
+        return;
     acceleration = accel;
     accel *= float(microStepsPerRevolution);
     stepper.setAcceleration(accel);
@@ -138,4 +145,14 @@ void updateSpeed()
         speed = newSpeed;
         stepper.setSpeed(speed * microStepsPerRevolution / 60.0);
     }
+}
+
+bool setDriverCurrent(uint16_t milliAmps)
+{
+    if (milliAmps > 2000) {
+        return false;
+    }
+    driverCurrent = milliAmps;
+    driver.rms_current(driverCurrent);
+    return true;
 }

@@ -11,7 +11,7 @@ enum stepperMode{
     stationary
 };
 
-void setupStepper();
+void setupStepper(uint8_t uSteps, uint coilCurrent);
 
 bool setMicrosteps(uint16_t _microSteps);
 
@@ -27,3 +27,5 @@ void setAcceleration(float accel);
 
 
 void updateStepper();
+
+bool setDriverCurrent(uint16_t milliAmps);
