@@ -14,8 +14,8 @@ enum speedSetting { SPEED1,
 // =============================  VALUES TO PLAY WITH ==================================
 
 // set operating mode:
-const moveMode mode = CONSTANT; // determines whether the unit functions in a constant moving mode, or that it moves whenever pressed
-const bool homingEnabled = false; // Set to true to enable homing to SW1 on startup. if false no homing is required
+const moveMode mode = CONSTANTRETURN; // determines whether the unit functions in a constant moving mode, or that it moves whenever pressed
+const bool homingEnabled = true; // Set to true to enable homing to SW1 on startup. if false no homing is required
 const bool startOnPower = true; // if true the driver will start when power is active, if false it will start stationary
 
 // set movement parameters
@@ -65,6 +65,8 @@ void setup()
 {
     // general setup
     Serial.begin(115200);
+    delay(3000);
+    Serial.println("Start Setup");
     setCpuFrequencyMhz(80);
 
     // setup the i/o pins:
@@ -81,10 +83,12 @@ void setup()
 
     // home if required:
     if (homingEnabled) {
+        Serial.println("Start homing...");
         setSpeed(homingSpeed);
         while (!getButtonStatus(SW1_N)) {
             updateStepper();
         }
+        Serial.println("homing Finished!");
     }
     setZeroPosition();
 
@@ -92,6 +96,8 @@ void setup()
     if (startOnPower) {
         motorStartRequired = true;
     }
+
+    Serial.println("Setup completed!");
 }
 
 void loop()
@@ -200,7 +206,7 @@ void loop()
             if (movementCompleted()) {
                 startmotorRotation(rotationsForward);
             }
-            startButtonPressed = false; //flag will always be cleared to avoid constantly starting a rotation
+            startButtonPressed = false; // flag will always be cleared to avoid constantly starting a rotation
 
         } else if (getButtonStatus(MANUAL_CTRL_N)) {
             startButtonPressed = true;

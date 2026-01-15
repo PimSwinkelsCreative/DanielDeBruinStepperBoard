@@ -97,7 +97,7 @@ void setSpeed(float _speed)
         prevTargetSpeed = targetSpeed;
     }
     targetSpeed = _speed;
-    stepper.setMaxSpeed(max(prevTargetSpeed, targetSpeed) * microStepsPerRevolution);
+    stepper.setMaxSpeed(max(abs(prevTargetSpeed), abs(targetSpeed)) * microStepsPerRevolution);
     lastSpeedUpdate = micros(); // reset the speed update timer
 }
 
@@ -203,6 +203,6 @@ bool movementCompleted()
 
 void setPostionMaxSpeed(float maxSpeed)
 {
-    positionSpeed = maxSpeed;
+    positionSpeed = abs(maxSpeed);
     stepper.setMaxSpeed(maxSpeed * stepsPerRevolution);
 }
