@@ -14,12 +14,12 @@ enum speedSetting { SPEED1,
 // =============================  VALUES TO PLAY WITH ==================================
 
 // set operating mode:
-const moveMode mode = CONSTANTRETURN; // determines whether the unit functions in a constant moving mode, or that it moves whenever pressed
-const bool homingEnabled = true; // Set to true to enable homing to SW1 on startup. if false no homing is required
+const moveMode mode = MANUAL; // determines whether the unit functions in a constant moving mode, or that it moves whenever pressed
+const bool homingEnabled = false; // Set to true to enable homing to SW1 on startup. if false no homing is required
 const bool startOnPower = true; // if true the driver will start when power is active, if false it will start stationary
 
 // set movement parameters
-const bool useSwitchesForRotationAmount = true; // if this is enabled, the movement amont will be determined by the limit switches. Otherwise it will be based on rotationcount
+const bool useSwitchesForRotationAmount = false; // if this is enabled, the movement amont will be determined by the limit switches. Otherwise it will be based on rotationcount
 const float rotationsForward = 2; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
 const float rotationsBackward = 2; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
 const uint16_t numberOfCycles = 3; // how many times the motor moves the forward/backward movement. Only relevant in MANUAL and MANUALRETURN mode
@@ -79,7 +79,7 @@ void setup()
     // configure motor driver
     setupStepper(microsteps, motorCurrent);
     setAcceleration(acceleration);
-    setPostionMaxSpeed(rpm_1); // sytart by defaut on speed 1
+    setPostionMaxSpeed(rpm_1); // start by default on speed 1
 
     // home if required:
     if (homingEnabled) {
@@ -110,7 +110,6 @@ void loop()
                 currentSpeedSetting = SPEED2;
             } else {
                 currentSpeedSetting = SPEED1;
-                Serial.println("Set speed to Speed 1");
             }
             updateMotorSpeed = true;
         }
@@ -177,7 +176,7 @@ void loop()
                 movingForward = false;
             }
 
-            // deternmine the speed target:
+            // determine the speed target:
             float targetSpeed = rpm_1;
             if (currentSpeedSetting == SPEED2) {
                 targetSpeed = rpm_2;
@@ -185,6 +184,8 @@ void loop()
             if (!movingForward) {
                 targetSpeed = -targetSpeed;
             }
+
+            updateMotorSpeed = false; // in this mode the motorspeed gets adjusted automatically, without th need to check this flag
 
             // set the speed target:
             setSpeed(targetSpeed);
@@ -198,6 +199,7 @@ void loop()
                 movingForward = !movingForward;
             }
 
+            // update the motor speed when necessary:
             if (updateMotorSpeed) {
                 if (currentSpeedSetting == SPEED1) {
                     setPostionMaxSpeed(rpm_1);
@@ -210,16 +212,45 @@ void loop()
 
     } break;
     case MANUAL: {
-        static bool startButtonPressed = false;
-        if (startButtonPressed) {
-            if (movementCompleted()) {
-                startmotorRotation(rotationsForward);
-            }
-            startButtonPressed = false; // flag will always be cleared to avoid constantly starting a rotation
+        static bool movementStartFlag = false;
+        static bool movementActive = false;
 
-        } else if (getButtonStatus(MANUAL_CTRL_N)) {
-            startButtonPressed = true;
+        if (useSwitchesForRotationAmount) {
+
+        } else {
+            if (movementCompleted()) {
+                if (movementStartFlag) {
+                    //should not be required to update the speed right here as well temp workaround.
+                    if (currentSpeedSetting == SPEED1) {
+                        setPostionMaxSpeed(rpm_1);
+                    } else {
+                        setPostionMaxSpeed(rpm_2);
+                    }
+                    startmotorRotation(rotationsForward);
+                    movementStartFlag = false;
+                    movementActive = true;
+                    Serial.println("started the rotation!");
+                } else {
+                    movementActive = false;
+                }
+            }
+            // read the "manual" button. Ignore it if a movement is already active.
+            if (getButtonStatus(MANUAL_CTRL_N) && !movementActive) {
+                movementStartFlag = true;
+                Serial.println("manual rotation button detected!");
+            }
+
+            // update the motor speed when necessary:
+            if (updateMotorSpeed) {
+                if (currentSpeedSetting == SPEED1) {
+                    setPostionMaxSpeed(rpm_1);
+                } else {
+                    setPostionMaxSpeed(rpm_2);
+                }
+                updateMotorSpeed = false;
+            }
         }
+
     } break;
     case MANUALRETURN: {
         static bool movingForward = true;
@@ -247,7 +278,7 @@ void loop()
         break;
     }
 
-    // // set the motor current back after a peed change is completed:
+    // // set the motor current back after a speed change is completed:
     // if (startupActive && (millis() - lastMotorStart) > startupTime) {
     //     startupActive = false;
     //     setDriverCurrent(motorCurrent);

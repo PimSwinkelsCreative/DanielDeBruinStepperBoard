@@ -104,7 +104,8 @@ void setSpeed(float _speed)
 void startmotorRotation(float angle)
 {
     mode = position;
-    stepper.move(angle * float(microStepsPerRevolution));
+    stepper.move(long(angle * float(microStepsPerRevolution)));
+    Serial.println("started movement of "+String(angle)+" rotations with speed: "+String(stepper.maxSpeed()));
 }
 
 void setAcceleration(float accel)
@@ -201,4 +202,5 @@ void setPostionMaxSpeed(float maxSpeed)
 {
     positionSpeed = abs(maxSpeed);
     stepper.setMaxSpeed(maxSpeed * stepsPerRevolution);
+    Serial.println("position max speed set to: "+String(stepper.maxSpeed()));
 }
