@@ -11,7 +11,7 @@ TMC2209Stepper driver(&stepperSerial, 0.11f, 0);
 AccelStepper stepper(AccelStepper::DRIVER, STEPPER_STEP, STEPPER_DIR);
 
 // parameters:
-stepperMode mode = position;
+stepperMode mode = stationary;
 uint16_t stepsPerRevolution = 200;
 uint16_t microSteps = 16;
 uint16_t microStepsPerRevolution = microSteps * stepsPerRevolution;
@@ -21,9 +21,11 @@ uint16_t driverCurrent = 800;
 // speed variables:
 float speed = 0;
 float targetSpeed = 0;
+float prevTargetSpeed = 0;
+float positionSpeed = 0;
 uint32_t lastSpeedUpdate = 0;
 
-void setupStepper(uint8_t uSteps, uint coilCurrent)
+void setupStepper(uint16_t uSteps, uint coilCurrent)
 {
     // start the serial communication:
     stepperSerial.begin(9600, SERIAL_8N1, STEPPER_RX, STEPPER_TX);
@@ -53,6 +55,7 @@ void setupStepper(uint8_t uSteps, uint coilCurrent)
     driver.en_spreadCycle(false); // false = StealthChop / true = SpreadCycle
     // driver.COOLCONF(0b110010000101000); //enable coolstep with "medium" settings
     driver.shaft(false);
+    driver.intpol(true);
 
     // initialize the accelStepper library:
     stepper.setMaxSpeed(10 * microStepsPerRevolution); // limit speed to 10Hz
@@ -65,6 +68,7 @@ bool setMicrosteps(uint16_t _microSteps)
 {
     // check if the number is a power of two and within range:
     if (_microSteps & (_microSteps - 1) != 0 || _microSteps > 256) {
+        Serial.println("Failed to set the microsteps!");
         return false;
     }
     microSteps = _microSteps;
@@ -74,8 +78,8 @@ bool setMicrosteps(uint16_t _microSteps)
         microStepsPerRevolution = stepsPerRevolution;
     }
     driver.microsteps(microSteps);
-    Serial.println("Microsteps: " + String(microSteps));
-    Serial.println("Steps per revolution: " + String(microStepsPerRevolution));
+    Serial.println("Microsteps: " + String(microSteps)+" "+String(driver.microsteps()));
+    Serial.println("microsteps per revolution: " + String(microStepsPerRevolution));
     return true;
 }
 
@@ -91,8 +95,19 @@ void enableStepper(bool enable)
 void setSpeed(float _speed)
 {
     mode = constantSpeed;
+    if (_speed != targetSpeed) {
+        prevTargetSpeed = targetSpeed;
+    }
     targetSpeed = _speed;
+    stepper.setMaxSpeed(max(abs(prevTargetSpeed), abs(targetSpeed)) * microStepsPerRevolution);
     lastSpeedUpdate = micros(); // reset the speed update timer
+}
+
+void startmotorRotation(float angle)
+{
+    mode = position;
+    stepper.move(long(angle * float(microStepsPerRevolution)));
+    Serial.println("started movement of "+String(angle)+" rotations with speed: "+String(stepper.maxSpeed()));
 }
 
 void setAcceleration(float accel)
@@ -135,7 +150,7 @@ void updateSpeed()
         uint32_t now = micros();
         uint32_t interval = now - lastSpeedUpdate;
         lastSpeedUpdate = now;
-        float speedToAdd = 60.0 * acceleration * float(interval) / 1000000.0;
+        float speedToAdd = 60.0 * acceleration * float(interval) / 1000000.0; // contains conversion from rpm to rps
         float newSpeed = 0;
         if (speed > targetSpeed) {
             newSpeed = constrain(speed - speedToAdd, targetSpeed, speed);
@@ -143,7 +158,7 @@ void updateSpeed()
             newSpeed = constrain(speed + speedToAdd, speed, targetSpeed);
         }
         speed = newSpeed;
-        stepper.setSpeed(speed * microStepsPerRevolution / 60.0);
+        stepper.setSpeed(speed * microStepsPerRevolution);
     }
 }
 
@@ -152,7 +167,42 @@ bool setDriverCurrent(uint16_t milliAmps)
     if (milliAmps > 2000) {
         return false;
     }
-    driverCurrent = milliAmps;
-    driver.rms_current(driverCurrent);
+
+    if (driverCurrent != milliAmps) {
+        driverCurrent = milliAmps;
+        driver.rms_current(driverCurrent);
+    }
+
     return true;
+}
+
+void setZeroPosition()
+{
+    stepper.setCurrentPosition(0);
+}
+
+void stopStepper()
+{
+    stepper.stop();
+    stepper.runToNewPosition(0);
+}
+
+float getCurrentPosition()
+{
+    return float(stepper.currentPosition()) / float(microStepsPerRevolution);
+}
+
+bool movementCompleted()
+{
+    if (stepper.distanceToGo() == 0) {
+        return true;
+    }
+    return false;
+}
+
+void setPostionMaxSpeed(float maxSpeed)
+{
+    positionSpeed = abs(maxSpeed);
+    stepper.setMaxSpeed((maxSpeed/60.0) * float(microStepsPerRevolution));
+    Serial.println("position max speed set to: "+String(stepper.maxSpeed()));
 }
