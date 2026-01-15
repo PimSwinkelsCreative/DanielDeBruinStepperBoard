@@ -14,13 +14,13 @@ enum speedSetting { SPEED1,
 // =============================  VALUES TO PLAY WITH ==================================
 
 // set operating mode:
-const moveMode mode = MANUAL; // determines whether the unit functions in a constant moving mode, or that it moves whenever pressed
+const moveMode mode = CONSTANTRETURN; // determines whether the unit functions in a constant moving mode, or that it moves whenever pressed
 const bool homingEnabled = false; // Set to true to enable homing to SW1 on startup. if false no homing is required
 const bool startOnPower = true; // if true the driver will start when power is active, if false it will start stationary
 
 // set movement parameters
-const bool useSwitchesForRotationAmount = true; // if this is enabled, the movement amont will be determined by the limit switches. Otherwise it will be based on rotationcount
-const float rotationsForward = 2; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
+const bool useSwitchesForRotationAmount = false; // if this is enabled, the movement amont will be determined by the limit switches. Otherwise it will be based on rotationcount
+const float rotationsForward = 1; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
 const float rotationsBackward = 2; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
 const uint16_t numberOfCycles = 3; // how many times the motor moves the forward/backward movement. Only relevant in MANUAL and MANUALRETURN mode
 
@@ -31,7 +31,7 @@ const float homingSpeed = -10; // homing speed in rpm. Low speed is advised to m
 const float acceleration = 100; // max acceleration in rotations per second per second. Must always be positive
 
 // set hardware config:
-const uint16_t microsteps = 64; // microstepping. possible settings: 0,2,4,8,16,32,64
+const uint16_t microsteps = 0; // microstepping. possible settings: 0,2,4,8,16,32,64
 const uint16_t motorCurrent = 500; // set the coil current in milliAmps. Max 2000
 // const uint16_t startupCurrent = 100; // set the coil current in milliAmps. Max 2000
 // const uint16_t startupTime = 1000; // how many milliseconds the current will be different during ramp up-and down
@@ -262,7 +262,7 @@ void loop()
         } else {
             if (movementCompleted()) {
                 if (movementStartFlag) {
-                    // should not be required to update the speed right here as well temp workaround.
+                    // should not be required to update the speed right here as well.. works as temp workaround.
                     if (currentSpeedSetting == SPEED1) {
                         setPostionMaxSpeed(rpm_1);
                     } else {
@@ -271,7 +271,6 @@ void loop()
                     startmotorRotation(rotationsForward);
                     movementStartFlag = false;
                     movementActive = true;
-                    Serial.println("started the rotation!");
                 } else {
                     movementActive = false;
                 }
@@ -291,7 +290,6 @@ void loop()
         // read the "manual" button. Ignore it if a movement is already active.
         if (getButtonStatus(MANUAL_CTRL_N) && !movementActive) {
             movementStartFlag = true;
-            Serial.println("manual rotation button detected!");
         }
 
     } break;

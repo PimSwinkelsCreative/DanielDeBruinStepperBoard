@@ -25,7 +25,7 @@ float prevTargetSpeed = 0;
 float positionSpeed = 0;
 uint32_t lastSpeedUpdate = 0;
 
-void setupStepper(uint8_t uSteps, uint coilCurrent)
+void setupStepper(uint16_t uSteps, uint coilCurrent)
 {
     // start the serial communication:
     stepperSerial.begin(9600, SERIAL_8N1, STEPPER_RX, STEPPER_TX);
@@ -55,6 +55,7 @@ void setupStepper(uint8_t uSteps, uint coilCurrent)
     driver.en_spreadCycle(false); // false = StealthChop / true = SpreadCycle
     // driver.COOLCONF(0b110010000101000); //enable coolstep with "medium" settings
     driver.shaft(false);
+    driver.intpol(true);
 
     // initialize the accelStepper library:
     stepper.setMaxSpeed(10 * microStepsPerRevolution); // limit speed to 10Hz
@@ -67,6 +68,7 @@ bool setMicrosteps(uint16_t _microSteps)
 {
     // check if the number is a power of two and within range:
     if (_microSteps & (_microSteps - 1) != 0 || _microSteps > 256) {
+        Serial.println("Failed to set the microsteps!");
         return false;
     }
     microSteps = _microSteps;
@@ -76,8 +78,8 @@ bool setMicrosteps(uint16_t _microSteps)
         microStepsPerRevolution = stepsPerRevolution;
     }
     driver.microsteps(microSteps);
-    Serial.println("Microsteps: " + String(microSteps));
-    Serial.println("Steps per revolution: " + String(microStepsPerRevolution));
+    Serial.println("Microsteps: " + String(microSteps)+" "+String(driver.microsteps()));
+    Serial.println("microsteps per revolution: " + String(microStepsPerRevolution));
     return true;
 }
 
@@ -156,7 +158,7 @@ void updateSpeed()
             newSpeed = constrain(speed + speedToAdd, speed, targetSpeed);
         }
         speed = newSpeed;
-        stepper.setSpeed(speed * stepsPerRevolution);
+        stepper.setSpeed(speed * microStepsPerRevolution);
     }
 }
 
@@ -187,7 +189,7 @@ void stopStepper()
 
 float getCurrentPosition()
 {
-    return float(stepper.currentPosition()) / float(stepsPerRevolution);
+    return float(stepper.currentPosition()) / float(microStepsPerRevolution);
 }
 
 bool movementCompleted()
@@ -201,6 +203,6 @@ bool movementCompleted()
 void setPostionMaxSpeed(float maxSpeed)
 {
     positionSpeed = abs(maxSpeed);
-    stepper.setMaxSpeed(maxSpeed * stepsPerRevolution);
+    stepper.setMaxSpeed((maxSpeed/60.0) * float(microStepsPerRevolution));
     Serial.println("position max speed set to: "+String(stepper.maxSpeed()));
 }
