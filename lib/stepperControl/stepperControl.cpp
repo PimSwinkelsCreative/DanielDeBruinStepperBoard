@@ -21,6 +21,8 @@ uint16_t driverCurrent = 800;
 // speed variables:
 float speed = 0;
 float targetSpeed = 0;
+float prevTargetSpeed = 0;
+float positionSpeed = 0;
 uint32_t lastSpeedUpdate = 0;
 
 void setupStepper(uint8_t uSteps, uint coilCurrent)
@@ -91,8 +93,16 @@ void enableStepper(bool enable)
 void setSpeed(float _speed)
 {
     mode = constantSpeed;
+    if (_speed != targetSpeed) {
+        prevTargetSpeed = targetSpeed;
+    }
     targetSpeed = _speed;
+    stepper.setMaxSpeed(max(prevTargetSpeed, targetSpeed) * microStepsPerRevolution);
     lastSpeedUpdate = micros(); // reset the speed update timer
+}
+
+void setPosSpeed(float _speed)
+{
 }
 
 void startmotorRotation(float angle)
@@ -141,7 +151,7 @@ void updateSpeed()
         uint32_t now = micros();
         uint32_t interval = now - lastSpeedUpdate;
         lastSpeedUpdate = now;
-        float speedToAdd = 60.0 * acceleration * float(interval) / 1000000.0;
+        float speedToAdd = 60.0 * acceleration * float(interval) / 1000000.0;   //contains conversion from rpm to rps
         float newSpeed = 0;
         if (speed > targetSpeed) {
             newSpeed = constrain(speed - speedToAdd, targetSpeed, speed);
@@ -149,7 +159,7 @@ void updateSpeed()
             newSpeed = constrain(speed + speedToAdd, speed, targetSpeed);
         }
         speed = newSpeed;
-        stepper.setSpeed(speed * stepsPerRevolution / 60.0);
+        stepper.setSpeed(speed * stepsPerRevolution);
     }
 }
 
@@ -193,5 +203,6 @@ bool movementCompleted()
 
 void setPostionMaxSpeed(float maxSpeed)
 {
-    stepper.setMaxSpeed(maxSpeed*stepsPerRevolution);
+    positionSpeed = maxSpeed;
+    stepper.setMaxSpeed(maxSpeed * stepsPerRevolution);
 }
