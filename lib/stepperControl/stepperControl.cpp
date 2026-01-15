@@ -101,10 +101,6 @@ void setSpeed(float _speed)
     lastSpeedUpdate = micros(); // reset the speed update timer
 }
 
-void setPosSpeed(float _speed)
-{
-}
-
 void startmotorRotation(float angle)
 {
     mode = position;
@@ -151,7 +147,7 @@ void updateSpeed()
         uint32_t now = micros();
         uint32_t interval = now - lastSpeedUpdate;
         lastSpeedUpdate = now;
-        float speedToAdd = 60.0 * acceleration * float(interval) / 1000000.0;   //contains conversion from rpm to rps
+        float speedToAdd = 60.0 * acceleration * float(interval) / 1000000.0; // contains conversion from rpm to rps
         float newSpeed = 0;
         if (speed > targetSpeed) {
             newSpeed = constrain(speed - speedToAdd, targetSpeed, speed);

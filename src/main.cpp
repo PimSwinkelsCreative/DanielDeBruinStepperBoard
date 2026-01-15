@@ -19,14 +19,14 @@ const bool homingEnabled = true; // Set to true to enable homing to SW1 on start
 const bool startOnPower = true; // if true the driver will start when power is active, if false it will start stationary
 
 // set movement parameters
-const bool useSwitchesForRotationAmount = false; // if this is enabled, the movement amont will be determined by the limit switches. Otherwise it will be based on rotationcount
-const float rotationsForward = 1; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
-const float rotationsBackward = 1; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
+const bool useSwitchesForRotationAmount = true; // if this is enabled, the movement amont will be determined by the limit switches. Otherwise it will be based on rotationcount
+const float rotationsForward = 2; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
+const float rotationsBackward = 2; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
 const uint16_t numberOfCycles = 3; // how many times the motor moves the forward/backward movement. Only relevant in MANUAL and MANUALRETURN mode
 
 // set speed and acceleration parameters:
-const float rpm_1 = 60; // Default speed in rotations per minute. Negative number reverses the direction. MAX (+-)600
-const float rpm_2 = 120; // secondary speed in rpm. Toggled by speed button
+const float rpm_1 = 20; // Default speed in rotations per minute. Negative number reverses the direction. MAX (+-)600
+const float rpm_2 = 60; // secondary speed in rpm. Toggled by speed button
 const float homingSpeed = -10; // homing speed in rpm. Low speed is advised to minimize overshoot. Only relevant when homing is enabled
 const float acceleration = 100; // max acceleration in rotations per second per second. Must always be positive
 
@@ -110,6 +110,7 @@ void loop()
                 currentSpeedSetting = SPEED2;
             } else {
                 currentSpeedSetting = SPEED1;
+                Serial.println("Set speed to Speed 1");
             }
             updateMotorSpeed = true;
         }
@@ -152,10 +153,8 @@ void loop()
             if (motorActive) {
                 if (currentSpeedSetting == SPEED1) {
                     targetSpeed = rpm_1;
-                    Serial.println("setting speed 1");
                 } else {
                     targetSpeed = rpm_2;
-                    Serial.println("setting speed 2");
                 }
                 if (currentDirection < 0) {
                     targetSpeed = -targetSpeed;
@@ -198,7 +197,17 @@ void loop()
                 }
                 movingForward = !movingForward;
             }
+
+            if (updateMotorSpeed) {
+                if (currentSpeedSetting == SPEED1) {
+                    setPostionMaxSpeed(rpm_1);
+                } else {
+                    setPostionMaxSpeed(rpm_2);
+                }
+                updateMotorSpeed = false;
+            }
         }
+
     } break;
     case MANUAL: {
         static bool startButtonPressed = false;
