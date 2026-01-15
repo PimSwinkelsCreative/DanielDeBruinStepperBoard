@@ -19,7 +19,7 @@ const bool homingEnabled = false; // Set to true to enable homing to SW1 on star
 const bool startOnPower = true; // if true the driver will start when power is active, if false it will start stationary
 
 // set movement parameters
-const bool useSwitchesForRotationAmount = false; // if this is enabled, the movement amont will be determined by the limit switches. Otherwise it will be based on rotationcount
+const bool useSwitchesForRotationAmount = true; // if this is enabled, the movement amont will be determined by the limit switches. Otherwise it will be based on rotationcount
 const float rotationsForward = 2; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
 const float rotationsBackward = 2; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
 const uint16_t numberOfCycles = 3; // how many times the motor moves the forward/backward movement. Only relevant in MANUAL and MANUALRETURN mode
@@ -216,11 +216,53 @@ void loop()
         static bool movementActive = false;
 
         if (useSwitchesForRotationAmount) {
+            // handle the direction button:
+            if (getButtonStatus(DIRECTION_N)) {
+                if (!prevDirButton) {
+                    currentDirection = -currentDirection;
+                    updateMotorSpeed = true;
+                }
+                prevDirButton = true;
 
+            } else {
+                prevDirButton = false;
+            }
+
+            // handle the "manual" button
+            if (movementStartFlag) {
+                motorActive = true;
+                movementStartFlag = false;
+                updateMotorSpeed = true;
+            }
+
+            // use SW1 to determine the end of a rotation
+            if (getButtonStatus(SW1_N)) {
+                motorActive = false;
+                updateMotorSpeed = true;
+            }
+
+            // update the motor speed if required:
+            if (updateMotorSpeed) {
+                float targetSpeed = 0;
+                if (motorActive) {
+                    if (currentSpeedSetting == SPEED1) {
+                        targetSpeed = rpm_1;
+                    } else {
+                        targetSpeed = rpm_2;
+                    }
+                    if (currentDirection < 0) {
+                        targetSpeed = -targetSpeed;
+                    }
+                }
+                setSpeed(targetSpeed);
+                lastMotorStart = millis();
+                startupActive = true;
+                // setDriverCurrent(startupCurrent);
+            }
         } else {
             if (movementCompleted()) {
                 if (movementStartFlag) {
-                    //should not be required to update the speed right here as well temp workaround.
+                    // should not be required to update the speed right here as well temp workaround.
                     if (currentSpeedSetting == SPEED1) {
                         setPostionMaxSpeed(rpm_1);
                     } else {
@@ -234,11 +276,6 @@ void loop()
                     movementActive = false;
                 }
             }
-            // read the "manual" button. Ignore it if a movement is already active.
-            if (getButtonStatus(MANUAL_CTRL_N) && !movementActive) {
-                movementStartFlag = true;
-                Serial.println("manual rotation button detected!");
-            }
 
             // update the motor speed when necessary:
             if (updateMotorSpeed) {
@@ -249,6 +286,12 @@ void loop()
                 }
                 updateMotorSpeed = false;
             }
+        }
+
+        // read the "manual" button. Ignore it if a movement is already active.
+        if (getButtonStatus(MANUAL_CTRL_N) && !movementActive) {
+            movementStartFlag = true;
+            Serial.println("manual rotation button detected!");
         }
 
     } break;
