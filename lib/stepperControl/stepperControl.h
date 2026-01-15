@@ -11,7 +11,7 @@ enum stepperMode {
     stationary
 };
 
-void setupStepper(uint8_t uSteps, uint coilCurrent);
+void setupStepper(uint16_t uSteps, uint coilCurrent);
 
 bool setMicrosteps(uint16_t _microSteps);
 
