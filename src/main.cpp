@@ -14,24 +14,24 @@ enum speedSetting { SPEED1,
 // =============================  VALUES TO PLAY WITH ==================================
 
 // set operating mode:
-const moveMode mode = MANUALRETURN; // determines what moving mode is used. Options are: CONSTANT, CONSTANTRETURN, MANUAL, and MANUALRETURN
+const moveMode mode = CONSTANT; // determines what moving mode is used. Options are: CONSTANT, CONSTANTRETURN, MANUAL, and MANUALRETURN
 const bool homingEnabled = false; // Set to true to enable homing to SW1 on startup. if false no homing is required. SW1 is used for homing
 const bool startOnPower = false; // if true, the driver will start when power is active, if false it will start stationary
 
 // set movement parameters
-const bool useSwitchesForRotationAmount = true; // if this is enabled, the movement amount will be determined by the limit switches. Otherwise it will be based on rotationcount
+const bool useSwitchesForRotationAmount = false; // if this is enabled, the movement amount will be determined by the limit switches. Otherwise it will be based on rotationcount
 const float rotationsForward = 1; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
 const float rotationsBackward = 2; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
 const uint16_t numberOfCycles = 2; // how many times the motor moves the forward/backward movement. Only relevant in MANUAL and MANUALRETURN mode
 
 // set speed and acceleration parameters:
-const float rpm_1 = 1; // Default speed in rotations per minute. Negative number reverses the direction. MAX (+-)600
-const float rpm_2 = 3; // secondary speed in rpm. Toggled by speed button
+const float rpm_1 = 12.5; // Default speed in rotations per minute. Negative number reverses the direction. MAX (+-)600
+const float rpm_2 = 60; // secondary speed in rpm. Toggled by speed button
 const float homingSpeed = -10; // homing speed in rpm. Low speed is advised to minimize overshoot. Only relevant when homing is enabled
-const float acceleration = 100; // max acceleration in rotations per second per second. Must always be positive
+const float acceleration = 30; // max acceleration in rotations per second per second. Must always be positive
 
 // set hardware config:
-const uint16_t microsteps = 64; // microstepping. possible settings: 0,2,4,8,16,32,64. driver internally interpolates everything to 256 steps
+const uint16_t microsteps = 16; // microstepping. possible settings: 0,2,4,8,16,32,64. driver internally interpolates everything to 256 steps
 const uint16_t motorCurrent = 1000; // set the coil current in milliAmps. Max 2000
 // const uint16_t startupCurrent = 100; // set the coil current in milliAmps. Max 2000
 // const uint16_t startupTime = 1000; // how many milliseconds the current will be different during ramp up-and down
@@ -46,7 +46,7 @@ uint32_t lastMotorStart = 0;
 bool motorActive = false;
 bool motorStartRequired = false;
 bool manualButtonFlag = false;
-    bool updateMotorSpeed = false;
+bool updateMotorSpeed = false;
 
 speedSetting currentSpeedSetting = SPEED1;
 int currentDirection = 1;
@@ -405,19 +405,14 @@ void loop()
 
             // update the motor speed when necessary:
             if (updateMotorSpeed) {
-                Serial.println("1");
-                if(movementActive){
-                    Serial.println("2");
-                if (currentSpeedSetting == SPEED1) {
-                    setPostionMaxSpeed(rpm_1);
-                    Serial.println("3");
+                if (movementActive) {
+                    if (currentSpeedSetting == SPEED1) {
+                        setPostionMaxSpeed(rpm_1);
+                    } else {
+                        setPostionMaxSpeed(rpm_2);
+                    }
                 } else {
-                    setPostionMaxSpeed(rpm_2);
-                    Serial.println("4");
-                }
-                } else{
                     stopStepper();
-                    Serial.println("5");
                 }
 
                 updateMotorSpeed = false;

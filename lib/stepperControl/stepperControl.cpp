@@ -99,7 +99,7 @@ void setSpeed(float _speed)
         prevTargetSpeed = targetSpeed;
     }
     targetSpeed = _speed;
-    stepper.setMaxSpeed(max(abs(prevTargetSpeed), abs(targetSpeed)) * microStepsPerRevolution);
+    stepper.setMaxSpeed(max(abs(prevTargetSpeed), abs(targetSpeed))/60.0 * float(microStepsPerRevolution));
     lastSpeedUpdate = micros(); // reset the speed update timer
 
     Serial.println("Target speed: " + String(targetSpeed));
@@ -161,7 +161,7 @@ void updateSpeed()
         }
         Serial.println(newSpeed);
         speed = newSpeed;
-        stepper.setSpeed(speed * microStepsPerRevolution);
+        stepper.setSpeed((speed/60.0) * float(microStepsPerRevolution));
     }
 }
 
