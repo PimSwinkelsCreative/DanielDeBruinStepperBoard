@@ -14,19 +14,19 @@ enum speedSetting { SPEED1,
 // =============================  VALUES TO PLAY WITH ==================================
 
 // set operating mode:
-const moveMode mode = MANUALRETURN; // determines whether the unit functions in a constant moving mode, or that it moves whenever pressed
-const bool homingEnabled = false; // Set to true to enable homing to SW1 on startup. if false no homing is required
-const bool startOnPower = true; // if true the driver will start when power is active, if false it will start stationary
+const moveMode mode = MANUALRETURN; // determines what moving mode is used. Options are: CONSTANT, CONSTANTRETURN, MANUAL, and MANUALRETURN
+const bool homingEnabled = false; // Set to true to enable homing to SW1 on startup. if false no homing is required. SW1 is used for homing
+const bool startOnPower = false; // if true, the driver will start when power is active, if false it will start stationary
 
 // set movement parameters
-const bool useSwitchesForRotationAmount = false; // if this is enabled, the movement amount will be determined by the limit switches. Otherwise it will be based on rotationcount
+const bool useSwitchesForRotationAmount = true; // if this is enabled, the movement amount will be determined by the limit switches. Otherwise it will be based on rotationcount
 const float rotationsForward = 1; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
 const float rotationsBackward = 2; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
-const uint16_t numberOfCycles = 3; // how many times the motor moves the forward/backward movement. Only relevant in MANUAL and MANUALRETURN mode
+const uint16_t numberOfCycles = 2; // how many times the motor moves the forward/backward movement. Only relevant in MANUAL and MANUALRETURN mode
 
 // set speed and acceleration parameters:
-const float rpm_1 = 20; // Default speed in rotations per minute. Negative number reverses the direction. MAX (+-)600
-const float rpm_2 = 60; // secondary speed in rpm. Toggled by speed button
+const float rpm_1 = 1; // Default speed in rotations per minute. Negative number reverses the direction. MAX (+-)600
+const float rpm_2 = 3; // secondary speed in rpm. Toggled by speed button
 const float homingSpeed = -10; // homing speed in rpm. Low speed is advised to minimize overshoot. Only relevant when homing is enabled
 const float acceleration = 100; // max acceleration in rotations per second per second. Must always be positive
 
@@ -45,14 +45,16 @@ uint32_t lastMotorStart = 0;
 // stating:
 bool motorActive = false;
 bool motorStartRequired = false;
+bool manualButtonFlag = false;
+    bool updateMotorSpeed = false;
 
 speedSetting currentSpeedSetting = SPEED1;
 int currentDirection = 1;
 
 // button stating:
-bool prevStartButton = false;
 bool prevDirButton = false;
 bool prevSpeedButton = false;
+bool prevManualButton = false;
 
 int getButtonStatus(uint8_t buttonPin)
 {
@@ -102,7 +104,6 @@ void setup()
 void loop()
 {
     // handle the speed button:
-    bool updateMotorSpeed = false;
     if (getButtonStatus(SPEED_N)) {
         if (!prevSpeedButton) {
             if (currentSpeedSetting == SPEED1) {
@@ -129,20 +130,27 @@ void loop()
         prevDirButton = false;
     }
 
+    // handle the manual button:
+    if (getButtonStatus(MANUAL_CTRL_N) || motorStartRequired) {
+        if (!prevManualButton) {
+            motorStartRequired = false;
+            manualButtonFlag = true;
+            prevManualButton = true;
+            Serial.println("manualButtonFlag set");
+        }
+    } else {
+        prevManualButton = false;
+    }
+
     switch (mode) {
     case CONSTANT: {
         // hande the manual button:
         // a button press is simulated when a motor start is required by another part of the code
-        if (getButtonStatus(MANUAL_CTRL_N) || motorStartRequired) {
-            if (!prevStartButton) {
-                motorStartRequired = false;
-                motorActive = !motorActive;
-                updateMotorSpeed = true;
-            }
-            prevStartButton = true;
-
-        } else {
-            prevStartButton = false;
+        if (manualButtonFlag) {
+            motorStartRequired = false;
+            motorActive = !motorActive;
+            updateMotorSpeed = true;
+            manualButtonFlag = false;
         }
 
         // update the motor speed if required:
@@ -155,7 +163,7 @@ void loop()
                     targetSpeed = rpm_2;
                 }
             }
-            setSpeed(targetSpeed*currentDirection);
+            setSpeed(targetSpeed * currentDirection);
             lastMotorStart = millis();
             startupActive = true;
             // setDriverCurrent(startupCurrent);
@@ -181,16 +189,16 @@ void loop()
                 targetSpeed = -targetSpeed;
             }
 
-            updateMotorSpeed = false; // in this mode the motorspeed gets adjusted automatically, without th need to check this flag
+            updateMotorSpeed = false; // in this mode the motorspeed gets adjusted automatically, without the need to check this flag
 
             // set the speed target:
-            setSpeed(targetSpeed*currentDirection);
+            setSpeed(targetSpeed * currentDirection);
         } else {
             if (movementCompleted()) {
                 if (movingForward) {
-                    startmotorRotation(rotationsForward*currentDirection);
+                    startmotorRotation(rotationsForward * currentDirection);
                 } else {
-                    startmotorRotation(-rotationsBackward*currentDirection);
+                    startmotorRotation(-rotationsBackward * currentDirection);
                 }
                 movingForward = !movingForward;
             }
@@ -247,7 +255,7 @@ void loop()
                         targetSpeed = rpm_2;
                     }
                 }
-                setSpeed(targetSpeed*currentDirection);
+                setSpeed(targetSpeed * currentDirection);
                 lastMotorStart = millis();
                 startupActive = true;
                 // setDriverCurrent(startupCurrent);
@@ -261,7 +269,7 @@ void loop()
                     } else {
                         setPostionMaxSpeed(rpm_2);
                     }
-                    startmotorRotation(rotationsForward*currentDirection);
+                    startmotorRotation(rotationsForward * currentDirection);
                     movementStartFlag = false;
                     movementActive = true;
                 } else {
@@ -292,22 +300,17 @@ void loop()
         static bool movingForward = true;
         static uint8_t currentCycle = 0;
 
-        if (useSwitchesForRotationAmount) {
-            // handle the direction button:
-            if (getButtonStatus(DIRECTION_N)) {
-                if (!prevDirButton) {
-                    currentDirection = -currentDirection;
-                    updateMotorSpeed = true;
-                }
-                prevDirButton = true;
+        // button stating:
+        static bool prevSw1 = false;
+        static bool prevSw2 = false;
+        static bool prevManualSw = false;
 
-            } else {
-                prevDirButton = false;
-            }
+        if (useSwitchesForRotationAmount) {
 
             // handle the "manual" button
             if (movementStartFlag) {
-                motorActive = true;
+                // motorActive = true;
+                movementActive = true;
                 movementStartFlag = false;
                 updateMotorSpeed = true;
                 movingForward = true;
@@ -316,24 +319,39 @@ void loop()
 
             // use SW1 to determine the "home" end of a rotation
             if (getButtonStatus(SW1_N)) {
-                movingForward = true;
-                updateMotorSpeed = true;
-                currentCycle++;
-                if (currentCycle > numberOfCycles) {
-                    // numbr of cycles is reached. Stop the motor from turning
-                    movementActive = false;
+                if (!prevSw1) {
+                    prevSw1 = true;
+                    movingForward = true;
+                    updateMotorSpeed = true;
+                    currentCycle++;
+                    Serial.println("switching to moving forward");
+                    if (currentCycle >= numberOfCycles) {
+                        // numbr of cycles is reached. Stop the motor from turning
+                        movementActive = false;
+                        Serial.println("sequence completed!");
+                    }
                 }
+
+            } else {
+                prevSw1 = false;
             }
+
             // use SW1 to determine the "far" end of a rotation
             if (getButtonStatus(SW2_N)) {
-                movingForward = true;
-                updateMotorSpeed = true;
+                if (!prevSw2) {
+                    prevSw2 = true;
+                    movingForward = false;
+                    Serial.println("switching to moving backward");
+                    updateMotorSpeed = true;
+                }
+            } else {
+                prevSw2 = false;
             }
 
             // update the motor speed if required:
             if (updateMotorSpeed) {
                 float targetSpeed = 0;
-                if (motorActive) {
+                if (movementActive) {
                     if (currentSpeedSetting == SPEED1) {
                         targetSpeed = rpm_1;
                     } else {
@@ -342,10 +360,15 @@ void loop()
                     if (currentDirection < 0) {
                         targetSpeed = -targetSpeed;
                     }
+                    if (!movingForward) {
+                        targetSpeed = -targetSpeed;
+                    }
                 }
+
                 setSpeed(targetSpeed);
                 lastMotorStart = millis();
                 startupActive = true;
+                updateMotorSpeed = false;
                 // setDriverCurrent(startupCurrent);
             }
         } else {
@@ -367,14 +390,14 @@ void loop()
                             } else {
                                 setPostionMaxSpeed(rpm_2);
                             }
-                            startmotorRotation(rotationsForward*currentDirection);
+                            startmotorRotation(rotationsForward * currentDirection);
                             currentCycle++;
                         } else {
                             movementActive = false;
                         }
                     } else {
                         Serial.println("trying to start a backward rotation");
-                        startmotorRotation(-rotationsBackward*currentDirection);
+                        startmotorRotation(-rotationsBackward * currentDirection);
                     }
                     movingForward = !movingForward;
                 }
@@ -382,18 +405,35 @@ void loop()
 
             // update the motor speed when necessary:
             if (updateMotorSpeed) {
+                Serial.println("1");
+                if(movementActive){
+                    Serial.println("2");
                 if (currentSpeedSetting == SPEED1) {
                     setPostionMaxSpeed(rpm_1);
+                    Serial.println("3");
                 } else {
                     setPostionMaxSpeed(rpm_2);
+                    Serial.println("4");
                 }
+                } else{
+                    stopStepper();
+                    Serial.println("5");
+                }
+
                 updateMotorSpeed = false;
             }
         }
 
         // read the "manual" button. Ignore it if a movement is already active.
-        if (getButtonStatus(MANUAL_CTRL_N) && !movementActive) {
-            movementStartFlag = true;
+        if (manualButtonFlag) {
+            if (movementActive) {
+                movementActive = false;
+                updateMotorSpeed = true;
+                Serial.println("motor should stop...");
+            } else {
+                movementStartFlag = true;
+            }
+            manualButtonFlag = false;
         }
     } break;
     default:

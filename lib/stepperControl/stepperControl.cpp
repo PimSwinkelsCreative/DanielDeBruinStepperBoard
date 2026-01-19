@@ -78,7 +78,7 @@ bool setMicrosteps(uint16_t _microSteps)
         microStepsPerRevolution = stepsPerRevolution;
     }
     driver.microsteps(microSteps);
-    Serial.println("Microsteps: " + String(microSteps)+" "+String(driver.microsteps()));
+    Serial.println("Microsteps: " + String(microSteps) + " " + String(driver.microsteps()));
     Serial.println("microsteps per revolution: " + String(microStepsPerRevolution));
     return true;
 }
@@ -101,13 +101,15 @@ void setSpeed(float _speed)
     targetSpeed = _speed;
     stepper.setMaxSpeed(max(abs(prevTargetSpeed), abs(targetSpeed)) * microStepsPerRevolution);
     lastSpeedUpdate = micros(); // reset the speed update timer
+
+    Serial.println("Target speed: " + String(targetSpeed));
 }
 
 void startmotorRotation(float angle)
 {
     mode = position;
     stepper.move(long(angle * float(microStepsPerRevolution)));
-    Serial.println("started movement of "+String(angle)+" rotations with speed: "+String(stepper.maxSpeed()));
+    Serial.println("started movement of " + String(angle) + " rotations with speed: " + String(stepper.maxSpeed()));
 }
 
 void setAcceleration(float accel)
@@ -157,6 +159,7 @@ void updateSpeed()
         } else {
             newSpeed = constrain(speed + speedToAdd, speed, targetSpeed);
         }
+        Serial.println(newSpeed);
         speed = newSpeed;
         stepper.setSpeed(speed * microStepsPerRevolution);
     }
@@ -179,12 +182,13 @@ bool setDriverCurrent(uint16_t milliAmps)
 void setZeroPosition()
 {
     stepper.setCurrentPosition(0);
+    stepper.runToNewPosition(0);
 }
 
 void stopStepper()
 {
     stepper.stop();
-    stepper.runToNewPosition(0);
+    stepper.runToNewPosition(stepper.currentPosition());
 }
 
 float getCurrentPosition()
@@ -203,6 +207,6 @@ bool movementCompleted()
 void setPostionMaxSpeed(float maxSpeed)
 {
     positionSpeed = abs(maxSpeed);
-    stepper.setMaxSpeed((maxSpeed/60.0) * float(microStepsPerRevolution));
-    Serial.println("position max speed set to: "+String(stepper.maxSpeed()));
+    stepper.setMaxSpeed((maxSpeed / 60.0) * float(microStepsPerRevolution));
+    Serial.println("position max speed set to: " + String(stepper.maxSpeed()));
 }
