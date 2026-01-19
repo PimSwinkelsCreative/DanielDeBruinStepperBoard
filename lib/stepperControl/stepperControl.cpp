@@ -188,7 +188,7 @@ void setZeroPosition()
 void stopStepper()
 {
     stepper.stop();
-    stepper.runToNewPosition(stepper.currentPosition());
+    // stepper.runToNewPosition(stepper.currentPosition());
 }
 
 float getCurrentPosition()
