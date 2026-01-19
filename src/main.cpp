@@ -226,6 +226,7 @@ void handleManualReturn()
 {
     static bool movementStartFlag = false;
     static bool movementActive = false;
+    static bool sequencebusy = false;
     static bool movingForward = true;
     static uint8_t currentCycle = 0;
 
@@ -268,6 +269,7 @@ void handleManualReturn()
                 movementActive = true;
                 movingForward = true;
                 movementStartFlag = false;
+                sequencebusy = true;
             }
 
             if (movementActive) {
@@ -278,6 +280,7 @@ void handleManualReturn()
                         currentCycle++;
                     } else {
                         movementActive = false;
+                        sequencebusy = false;
                     }
                 } else {
                     startmotorRotation(-rotationsBackward * currentDirection);
@@ -292,12 +295,12 @@ void handleManualReturn()
     }
 
     if (manualButtonFlag) {
-        if (movementActive) {
-            movementActive = false;
-            updateMotorSpeed = true;
-        } else {
+        if (!sequencebusy) {
             movementStartFlag = true;
         }
+        movementActive = !movementActive;
+        updateMotorSpeed = true;
+
         manualButtonFlag = false;
     }
 }
