@@ -32,7 +32,7 @@ enum speedSetting {
 // ============================= USER CONFIG =============================
 
 // set operating mode:
-const moveMode mode = MANUALRETURN; // determines what moving mode is used. Options are: CONSTANT, CONSTANTRETURN, MANUAL, and MANUALRETURN
+const moveMode mode = MANUAL; // determines what moving mode is used. Options are: CONSTANT, CONSTANTRETURN, MANUAL, and MANUALRETURN
 const bool homingEnabled = false; // Set to true to enable homing to SW1 on startup. if false no homing is required. SW1 is used for homing
 const bool startOnPower = false; // if true, the driver will start when power is active, if false it will start stationary
 
@@ -181,6 +181,17 @@ void handleManual()
 {
     static bool movementStartFlag = false;
     static bool movementActive = false;
+    static bool rotationBusy = false;
+
+    // update the manual button:
+    if (manualButtonFlag) {
+        movementActive = !movementActive;
+        updateMotorSpeed = true;
+        manualButtonFlag = false;
+        if (!rotationBusy) {
+            movementStartFlag = true;
+        }
+    }
 
     if (useSwitchesForRotationAmount) {
 
@@ -203,12 +214,13 @@ void handleManual()
 
         if (movementCompleted()) {
             if (movementStartFlag) {
-                updatePositionSpeed();
                 startmotorRotation(rotationsForward * currentDirection);
                 movementStartFlag = false;
                 movementActive = true;
+                rotationBusy = true;
             } else {
                 movementActive = false;
+                rotationBusy = false;
             }
         }
 
@@ -217,9 +229,9 @@ void handleManual()
         }
     }
 
-    if (getButtonStatus(MANUAL_CTRL_N) && !movementActive) {
-        movementStartFlag = true;
-    }
+    // if (getButtonStatus(MANUAL_CTRL_N) && !movementActive) {
+    //     movementStartFlag = true;
+    // }
 }
 
 void handleManualReturn()
