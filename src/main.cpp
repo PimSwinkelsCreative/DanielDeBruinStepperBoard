@@ -2,6 +2,13 @@
 #include "stepperControl.h"
 #include <Arduino.h>
 
+// Required external libraries to run this sketch:
+//  AccelStepper library:
+//  https://github.com/waspinator/AccelStepper
+
+// TMC stepper library:
+// https://github.com/teemuatlut/TMCStepper
+
 // code structure:
 // ├─ User config
 // ├─ Globals / state
@@ -27,9 +34,9 @@ enum speedSetting {
     SPEED2
 };
 
-// =============================  VALUES TO PLAY WITH ==================================
-
 // ============================= USER CONFIG =============================
+
+// =============================  VALUES TO PLAY WITH ==================================
 
 // set operating mode:
 const moveMode mode = MANUAL; // determines what moving mode is used. Options are: CONSTANT, CONSTANTRETURN, MANUAL, and MANUALRETURN
