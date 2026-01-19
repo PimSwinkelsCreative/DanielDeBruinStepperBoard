@@ -40,7 +40,7 @@ enum speedSetting {
 
 // set operating mode:
 const moveMode mode = MANUAL; // determines what moving mode is used. Options are: CONSTANT, CONSTANTRETURN, MANUAL, and MANUALRETURN
-const bool homingEnabled = false; // Set to true to enable homing to SW1 on startup. if false no homing is required. SW1 is used for homing
+const bool homingEnabled = true; // Set to true to enable homing to SW1 on startup. if false no homing is required. SW1 is used for homing
 const bool startOnPower = false; // if true, the driver will start when power is active, if false it will start stationary
 
 // set movement parameters
