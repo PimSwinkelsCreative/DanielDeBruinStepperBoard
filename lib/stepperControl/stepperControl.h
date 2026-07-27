@@ -5,7 +5,8 @@
 #define FORWARD HIGH
 #define BACKWARD LOW
 
-enum stepperMode {
+enum stepperMode
+{
     position,
     constantSpeed,
     stationary
@@ -40,3 +41,5 @@ float getCurrentPosition();
 bool movementCompleted();
 
 void setPostionMaxSpeed(float maxSpeed);
+
+void startHoming(float homingSpeed, float homingAcceleration);
