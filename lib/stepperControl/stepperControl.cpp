@@ -41,6 +41,10 @@ void setupStepper(uint16_t uSteps, uint coilCurrent)
 
     // start driver config:
     driver.begin();
+    driver.toff(5); // Enable the driver
+    driver.blank_time(24);
+    driver.pdn_disable(true);     // Use UART instead of PDN pin
+    driver.I_scale_analog(false); // Ignore VREF potentiometer
 
     // set rms current and microstep
     if (!setDriverCurrent(coilCurrent))
