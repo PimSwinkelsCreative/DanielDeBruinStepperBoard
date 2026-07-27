@@ -41,32 +41,34 @@ enum speedSetting
 // =============================  VALUES TO PLAY WITH ==================================
 
 // set operating mode:
-const moveMode mode = MANUAL;    // determines what moving mode is used. Options are: CONSTANT, CONSTANTRETURN, MANUAL, and MANUALRETURN
-const bool homingEnabled = true; // Set to true to enable homing to SW1 on startup. if false no homing is required. SW1 is used for homing
-const bool startOnPower = false; // if true, the driver will start when power is active, if false it will start stationary
+const moveMode mode = MANUAL;     // determines what moving mode is used. Options are: CONSTANT, CONSTANTRETURN, MANUAL, and MANUALRETURN
+const bool homingEnabled = false; // Set to true to enable homing to SW1 on startup. if false no homing is required. SW1 is used for homing
+const bool startOnPower = false;  // if true, the driver will start when power is active, if false it will start stationary
 
 // set movement parameters
 const bool useSwitchesForRotationAmount = false; // if this is enabled, the movement amount will be determined by the limit switches. Otherwise it will be based on rotationcount
 const float rotationsForward = 14;               // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
-const float rotationsBackward = 1;               // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
-const uint16_t numberOfCycles = 1;               // how many times the motor moves the forward/backward movement. Only relevant in MANUAL and MANUALRETURN mode
 
 // set speed and acceleration parameters:
 const float rpm_1 = 240;             // Default speed in rotations per minute. Negative number reverses the direction. MAX (+-)600
-const float rpm_2 = 60;              // secondary speed in rpm. Toggled by speed button
 const float homingSpeed = -60;       // homing speed in rpm. Low speed is advised to minimize overshoot. Only relevant when homing is enabled
 const float acceleration = 10;       // max acceleration in rotations per second per second. Must always be positive
-const float deceleration = 5;       // max deceleration in rotations per second per second. Must always be positive
+const float deceleration = 5;        // max deceleration in rotations per second per second. Must always be positive
 const float homingAcceleration = 30; // max acceleration in rotations per second per second during homing. Must always be positive
 
 // set hardware config:
 const uint16_t microsteps = 16;     // microstepping. possible settings: 0,2,4,8,16,32,64. driver internally interpolates everything to 256 steps
-const uint16_t motorCurrent = 2000; // set the coil current in milliAmps. Max 2000
-const uint16_t homingCurrent  = 1500; // set the coil current during homing in milliAmps. Max 2000
+const uint16_t motorCurrent = 1500;  // set the coil current in milliAmps. Max 2000
+const uint16_t homingCurrent = 2000; // set the coil current during homing in milliAmps. Max 2000
 // const uint16_t startupCurrent = 100; // set the coil current in milliAmps. Max 2000
 // const uint16_t startupTime = 1000; // how many milliseconds the current will be different during ramp up-and down
 
 // ========================= DO NOT ALTER CODE AFTER THIS POINT =========================
+
+// parameters that are not user configurable for this installation:
+const float rotationsBackward = 1; // how many forwardrotations in one move. Counted in whole rotations. (only relevant when useSwitchesForRotationAmount is false)
+const uint16_t numberOfCycles = 1; // how many times the motor moves the forward/backward movement. Only relevant in MANUAL and MANUALRETURN mode
+const float rpm_2 = 60;            // secondary speed in rpm. Toggled by speed button
 
 // ========================= INTERNAL STATE =========================
 
@@ -146,7 +148,8 @@ inline void updatePositionSpeed(bool active = true)
 
 void homePosition()
 {
-    if(getButtonStatus(SW1_N)){
+    if (getButtonStatus(SW1_N))
+    {
         Serial.println("Already at home position, no homing required");
         return; // already at home position, no need to home
     }
@@ -279,7 +282,6 @@ void handleManual()
         if (abs(getCurrentPosition() - startPosition) >= abs((endPosition - startPosition)) / 2)
         {
             setAcceleration(deceleration);
-
         }
 
         if (movementCompleted())
